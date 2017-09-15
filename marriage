@@ -1,0 +1,138 @@
+'''
+CSC 440
+Assignment 1
+Jonathan Ibanez and Blake Nappi
+--------------------------------------------------------
+------------For Invariant comments look at the----------
+----------documentation for more indepth information----
+--------------------------------------------------------
+'''
+import sys                  #Allows us to read input from the user
+import time                 #In order to time our program
+
+start_time = time.time()    #Start time recorded to measure how long program takes to run
+
+'''
+Parse the input to an array of the file's lines
+'''
+
+#------------Initialization Invariant------------
+#------This is the point the Initialization------
+#-----------------Invariant begins---------------
+
+if len(sys.argv) > 1:                   #Check if we recieved an input
+    with open(sys.argv[1]) as file:     
+        lines = file.readlines()
+else:
+    exit(1)
+
+if len(lines) < 3:                      #Now we check for incorrect inputs, starting if out input is less 3
+    exit(1)                             #Since smallest input is 1 followed by knight's preference and ladie's preference (3 lines)
+                                        #We will be checking for more errors in input in the next section
+
+
+'''
+Organize input into preference dictionaries for both Knights and Ladies
+where key is name and value is list of preferences
+'''
+                                                #Developing preferences for the Knights
+                                                
+if len(lines[0].strip().split(' ')) is not 1:   #The first line of input must be 1 element long
+    exit(1)
+    
+try:                                            #Checks if our first line is an integer
+    val = int(lines[0].strip())
+except ValueError:
+    exit(1)
+    
+numKnights = int(lines[0])                      #Number of Knights             
+
+if len(lines) is not 2*numKnights + 1:          #Our input must be exactly 2*numKnights + 1
+    exit(1)                                     #Since we have numKnights knights, numKnights ladies, and 1 line for our number
+
+freeKnights = []                                #List to hold names of our available Knights
+knightPref = {}                                 #Dictionary to store preferences for each Knight
+
+for i in range(1,numKnights+1):                 #First half of our input works with Knights
+    preferences = lines[i].strip().split(' ')   #Format each line into a list
+    if len(preferences) is not numKnights +1:   #If length of preferences is not the knights name and his preferences, exit
+        exit(1)
+    name = preferences[0]                       #Remove and store the first element in the list as the Knight's name
+    del preferences[0]
+    freeKnights.append(name)
+    knightPref[name] = preferences              #Store the Knight's preferences under his name in the dictionary
+
+    
+freeLady = []                                   #Repeat the process for the Ladies
+ladyPref = {}
+for i in range (numKnights+1,2*numKnights+1):
+    preferences = lines[i].strip().split(' ')
+    if len(preferences) is not numKnights +1:
+        exit(1)
+    name = preferences[0]
+    freeLady.append(name)
+    del preferences[0]
+    ladyPref[name] = preferences
+
+'''
+Gale -Shapley Algorithm
+All Knights and Ladies are free
+'''    
+
+engagements = {}                                #A dictionary to hold our engagements in the form Lady:Knight
+
+#-------------Initilization Invariant-------------
+#-------------------------------------------------
+#--------Has been completed at this point---------
+
+
+#------------Maintenance Invariant----------------
+#-------------------------------------------------
+#----begins here and whenever it loops back-------
+#----to the top of this loop all Maintencance-----
+#----------Invariant points are true--------------
+
+while freeKnights:                              #While there exists a free Knight
+
+    assert len(freeKnights) == len(freeLady)
+    
+    newKnight = freeKnights[0]                  #Remove the first knight from our set of free knights
+    del freeKnights[0]                          
+    prefWoman = knightPref[newKnight][0]        #Find this Knight's first preference and remove it from his list of preferences
+    del knightPref[newKnight][0]                #...since if there's a reason the Knight can't be engaged with her now, 
+                                                #...he will never be able to engage with her
+    
+    if prefWoman in freeLady:                   #If the Lady is free
+        engagements[prefWoman] = newKnight      #Add the pair to the engagements dictionary
+        freeLady.remove(prefWoman)              #And that lady is no longer free
+    else:
+        currentMan = engagements[prefWoman]     #Otherwise we must compare our newKnight to the Knight the Lady is currently engaged with
+        if ladyPref[prefWoman].index(currentMan) \
+            > ladyPref[prefWoman].index(newKnight): #Compare their indices in the Lady's preference list, the leftmost Knight is her prefered choice
+            freeKnights.append(currentMan)      #If she likes the new Knight more, the current Knight is back to being free
+            engagements[prefWoman] = newKnight  #And is replaced by the new Knight
+        else:
+            freeKnights.append(newKnight)       #Otherwise there is no match, and the new Knight is returned back to the list
+
+#-------------Initilization Invariant-------------
+#-------------------------------------------------
+#--------Has been completed at this point---------
+
+'''
+Printing the output
+'''            
+
+#-------------Termination Invariant---------------
+#-------------------------------------------------
+#-------Every knight & lady is currently----------
+#---------------in a stable match-----------------
+#-----All of the matches will not be printed------
+
+assert len(freeKnights) == 0
+assert len(freeLady) == 0
+assert len(engagements) == numKnights
+
+for lady in engagements:                        #Formatting our output to the specifications given to us
+    print engagements[lady],lady
+
+sys.stderr.write("------ %s seconds ------" % (time.time() - start_time))
